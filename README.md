@@ -116,9 +116,9 @@ dotnet publish -c Release
   <img src="https://github.com/TemhaN/FlowerShop/blob/master/FlowerShop/Screenshots/1.png?raw=true" alt="Service App" width="30%">
   <img src="https://github.com/TemhaN/FlowerShop/blob/master/FlowerShop/Screenshots/2.png?raw=true" alt="Service App" width="30%">
   <img src="https://github.com/TemhaN/FlowerShop/blob/master/FlowerShop/Screenshots/3.png?raw=true" alt="Service App" width="30%">
-  <img src="https://github.com/TemhaN/FlowerShop/blob/master/FlowerShop/Screenshots/4.png?raw=true" alt="Service App" width="30%">
-  <img src="https://github.com/TemhaN/FlowerShop/blob/master/FlowerShop/Screenshots/5.png?raw=true" alt="Service App" width="30%">      
+  <img src="https://github.com/TemhaN/FlowerShop/blob/master/FlowerShop/Screenshots/4.png?raw=true" alt="Service App" width="30%">   
 </div>
+<img src="https://github.com/TemhaN/FlowerShop/blob/master/FlowerShop/Screenshots/5.png?raw=true" alt="Service App" width="30%">      
 
 ## 🧠 Автор
 
