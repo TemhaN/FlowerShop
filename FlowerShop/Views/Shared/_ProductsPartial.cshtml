@@ -1,0 +1,58 @@
+﻿@model FlowerShop.Models.HomeViewModel
+@using System.Security.Claims
+@inject FlowerShop.Services.FavoriteService FavoriteService
+
+<style>
+
+</style>
+
+<div class="container mx-auto px-4 py-12 max-w-7xl">
+    @if (Model == null || Model.Products == null)
+    {
+        <div class="text-center py-8 text-gray-500 text-lg">Не удалось загрузить товары. Попробуйте перезагрузить страницу.</div>
+        return;
+    }
+    <div id="products-container" class="grid grid-cols-3 gap-6" data-page="@Model.Search.Page" data-has-more="@Model.HasMore.ToString().ToLower()">
+        @foreach (var product in Model.Products)
+        {
+            var userId = Context.User.Identity.IsAuthenticated
+            ? int.Parse(Context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new InvalidOperationException("Пользователь не найден"))
+            : (int?)null;
+            var isFavorite = userId.HasValue && await FavoriteService.IsFavorite(userId.Value,
+            bouquetId: product.Type == "Bouquet" ? product.Id : null,
+            flowerId: product.Type == "Flower" ? product.Id : null,
+            toyId: product.Type == "Toy" ? product.Id : null);
+            var detailsUrl = $"/{(product.Type == "Bouquet" ? "Bouquets" : product.Type == "Flower" ? "Flowers" : "Toys")}/Details/{product.Id}";
+            var itemType = product.Type == "Bouquet" ? "Букет" : product.Type == "Flower" ? "Цветок" : "Игрушка";
+
+            <div class="relative bg-gradient-to-b from-white to-gray-50 p-6 rounded-xl hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
+                <a href="@detailsUrl" class="block relative group">
+                    <img src="@product.ImagePath" alt="@product.Name" class="w-full h-48 object-cover rounded-lg mb-4 transition-all duration-300 group-hover:brightness-75" />
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg"></div>
+                </a>
+                <h3 class="text-lg font-semibold text-gray-800 truncate mb-4">
+                    @product.Name <span class="text-sm text-gray-500">• @itemType</span>
+                </h3>
+                <p class="text-gray-600 mb-4">@product.Description</p>
+                <p class="text-green-600 font-bold text-xl mb-4">₸@product.Price.ToString("F2")</p>
+                <form class="add-to-cart-form" method="post" action="/@(product.Type)s/AddToCart" data-controller="@(product.Type.ToLower())s">
+                    <input type="hidden" name="id" value="@product.Id" />
+                    <div class="flex items-center space-x-2 mb-3">
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition">В корзину</button>
+                    </div>
+                </form>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <form class="add-to-favorite-form absolute top-8 right-8" method="post" action="/@(product.Type)s/AddToFavorite" data-controller="@(product.Type.ToLower())s" data-is-favorite="@isFavorite.ToString().ToLower()">
+                        <input type="hidden" name="id" value="@product.Id" />
+                        <button type="submit" class="favorite-btn bg-white p-1.5 rounded-full shadow-sm hover:bg-gray-100 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 @(isFavorite ? "text-red-600" : "text-gray-400")" fill="@(isFavorite ? "currentColor" : "none")" viewBox="0 0 24 24" stroke="@(isFavorite ? "none" : "currentColor")" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364l-7.682 7.682-7.682-7.682a4.5 4.5 0 010-6.364z" />
+                            </svg>
+                        </button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+</div>

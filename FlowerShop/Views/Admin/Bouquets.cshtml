@@ -1,0 +1,121 @@
+﻿@model List<FlowerShop.Models.Bouquet>
+
+@{
+    ViewData["Title"] = "Управление букетами";
+}
+
+<div class="container mx-auto px-4 py-12 max-w-7xl relative">
+    <a href="/Admin/Dashboard" class="back-button text-blue-500 hover:underline">Назад</a>
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">Управление букетами</h1>
+
+    <div class="mb-6">
+        <button onclick="openModal('create-bouquet-modal')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Добавить букет</button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="bouquets-grid">
+        @foreach (var bouquet in Model)
+        {
+            <div class="bg-white rounded-xl shadow-lg p-4" data-id="@bouquet.Id">
+                <img src="@(string.IsNullOrEmpty(bouquet.ImagePath) ? "/Images/placeholder.png" : bouquet.ImagePath)" alt="@bouquet.Name" class="w-full h-48 object-cover rounded-lg mb-4" />
+                <h2 class="text-lg font-semibold text-gray-800">@bouquet.Name</h2>
+                <p class="text-gray-600">₸@bouquet.Price.ToString("F2")</p>
+                <p class="text-gray-600">На складе: @bouquet.Stock</p>
+                <div class="mt-4 flex space-x-2">
+                    <button onclick="openEditModal('bouquet', @bouquet.Id, '@bouquet.Name', '@bouquet.Description', @bouquet.Price.ToString("F2").Replace(".", ","), @bouquet.Stock, '@bouquet.ImagePath')" class="text-blue-500 hover:underline">Редактировать</button>
+                    <button onclick="openDeleteModal(@bouquet.Id, 'bouquet')" class="text-red-500 hover:underline">Удалить</button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Модальное окно для создания букета -->
+    <div id="create-bouquet-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Добавить букет</h2>
+            <form id="create-bouquet-form" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                    <input type="text" name="Name" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" required />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                    <textarea name="Description" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" rows="4"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+                    <input type="text" name="Price" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" required pattern="^\d+([,.]\d{1,2})?$" placeholder="123,45" />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Количество на складе</label>
+                    <input type="number" name="Stock" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" required min="0" />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Изображение</label>
+                    <input type="file" name="ImageFile" accept="image/*" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Сохранить</button>
+                    <button type="button" onclick="closeModal('create-bouquet-modal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования букета -->
+    <div id="edit-bouquet-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Редактировать букет</h2>
+            <form id="edit-bouquet-form" enctype="multipart/form-data">
+                <input type="hidden" name="Id" id="edit-bouquet-id" />
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Название</label>
+                    <input type="text" name="Name" id="edit-bouquet-name" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" required />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Описание</label>
+                    <textarea name="Description" id="edit-bouquet-description" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" rows="4"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Цена</label>
+                    <input type="text" name="Price" id="edit-bouquet-price" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" required pattern="^\d+([,.]\d{1,2})?$" placeholder="123,45" />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Количество на складе</label>
+                    <input type="number" name="Stock" id="edit-bouquet-stock" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" required min="0" />
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Изображение</label>
+                    <input type="file" name="ImageFile" id="edit-bouquet-imagefile" accept="image/*" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
+                </div>
+                <div class="flex space-x-4">
+                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">Сохранить</button>
+                    <button type="button" onclick="closeModal('edit-bouquet-modal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для подтверждения удаления -->
+    <div id="delete-bouquet-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Подтверждение удаления</h2>
+            <p class="mb-4">Вы уверены, что хотите удалить этот букет?</p>
+            <form id="delete-bouquet-form">
+                <input type="hidden" name="id" id="delete-bouquet-id" />
+                <div class="flex space-x-4">
+                    <button type="submit" id="delete-bouquet-submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Удалить</button>
+                    <button type="button" onclick="closeModal('delete-bouquet-modal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin.js"></script>
+    <script>
+        handleCreateForm('bouquet', 'bouquets-grid', '/Admin/CreateBouquet');
+        handleEditForm('bouquet', 'bouquets-grid', '/Admin/EditBouquet');
+        handleDeleteForm('bouquet', 'bouquets-grid', '/Admin/DeleteBouquet');
+    </script>
+}

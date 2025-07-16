@@ -1,0 +1,83 @@
+﻿@model IEnumerable<FlowerShop.Models.Review>
+
+@{
+    ViewData["Title"] = "Управление отзывами";
+}
+
+<div class="container mx-auto px-4 py-12 max-w-7xl relative">
+    <a href="/Admin/Dashboard" class="back-button text-blue-500 hover:underline">Назад</a>
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">Управление отзывами</h1>
+
+    <div class="bg-white p-6 rounded-xl shadow-lg">
+        @if (Model.Any())
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="reviews-grid">
+                @foreach (var review in Model)
+                {
+                    <div class="bg-white rounded-xl shadow-lg p-4" data-id="@review.Id">
+                        <div class="flex items-center mb-4">
+                            <div>
+                                <h2 class="text-lg font-semibold text-gray-800">@review.User.Username</h2>
+                                <p class="text-sm text-gray-600">@review.CreatedAt.ToString("dd.MM.yyyy")</p>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-2">
+                            <span class="font-semibold">Товар: </span>
+                            @if (review.BouquetId.HasValue)
+                            {
+                                <span>Букет: @review.Bouquet.Name</span>
+                            }
+                            else if (review.FlowerId.HasValue)
+                            {
+                                <span>Цветок: @review.Flower.Name</span>
+                            }
+                            else if (review.ToyId.HasValue)
+                            {
+                                <span>Игрушка: @review.Toy.Name</span>
+                            }
+                        </p>
+                        <div class="flex items-center mb-2">
+                            <span class="font-semibold mr-2">Рейтинг: </span>
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <svg class="h-5 w-5 @(i <= review.Rating ? "text-yellow-400" : "text-gray-300")" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.691h4.162c.969 0 1.371 1.24.588 1.81l-3.357 2.44a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.54 1.118l-3.357-2.44a1 1 0 00-1.175 0l-3.357 2.44c-.784.57-1.838-.197-1.54-1.118l1.286-3.957a1 1 0 00-.363-1.118l-3.357-2.44c-.784-.57-.382-1.81.588-1.81h4.162a1 1 0 00.95-.691l1.286-3.957z" />
+                                </svg>
+                            }
+                        </div>
+                        <p class="text-gray-600 mb-4"><span class="font-semibold">Комментарий: </span>@(review.Comment.Length > 100 ? review.Comment.Substring(0, 100) + "..." : review.Comment)</p>
+                        <div class="mt-4 flex justify-end">
+                            <button onclick="openDeleteModal(@review.Id, 'review')" class="text-red-500 hover:underline">Удалить</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-gray-600">Отзывов пока нет.</p>
+        }
+    </div>
+
+    <!-- Модальное окно для подтверждения удаления -->
+    <div id="delete-review-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Подтверждение удаления</h2>
+            <p class="mb-4">Вы уверены, что хотите удалить этот отзыв?</p>
+            <form id="delete-review-form">
+                <input type="hidden" name="id" id="delete-review-id" />
+                <div class="flex space-x-4">
+                    <button type="submit" id="delete-review-submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Удалить</button>
+                    <button type="button" onclick="closeModal('delete-review-modal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin.js"></script>
+    <script>
+        handleDeleteForm('review', 'reviews-grid', '/Admin/DeleteReview');
+    </script>
+}

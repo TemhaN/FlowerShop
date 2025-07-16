@@ -1,0 +1,282 @@
+﻿@model FlowerShop.Models.ToyDetailsViewModel
+@using System.Security.Claims
+@inject FlowerShop.Services.FavoriteService FavoriteService
+
+<div class="container px-4 py-12">
+    <!-- Основная карточка игрушки -->
+    <section class="mb-12 bg-white/95 p-6 sm:p-8 rounded-2xl">
+        <div class="flex flex-col md:flex-row gap-6">
+            <div class="md:w-1/2">
+                <a href="@Model.Toy.ImagePath" class="block relative group">
+                    <img src="@Model.Toy.ImagePath" alt="@Model.Toy.Name" class="w-full h-64 object-cover rounded-lg transition-all duration-300 group-hover:brightness-75" />
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg"></div>
+                </a>
+            </div>
+            <div class="md:w-1/2 relative">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4">@Model.Toy.Name</h1>
+                <p class="text-gray-600 mb-4">@Model.Toy.Description</p>
+                <p class="text-green-600 font-bold text-xl mb-4">₸@Model.Toy.Price.ToString("F2")</p>
+                <p class="text-gray-600 mb-6">В наличии: @Model.Toy.Stock</p>
+                <form class="add-to-cart-form" method="post" action="/Toys/AddToCart" data-controller="toys">
+                    <input type="hidden" name="id" value="@Model.Toy.Id" />
+                    <div class="flex items-center space-x-2 mb-4">
+                        <input type="number" name="Quantity" value="1" min="1" max="@Model.Toy.Stock" class="border border-gray-300 rounded-lg p-2 w-16 text-center focus:outline-none focus:ring-2 focus:ring-green-500 transition" />
+                        <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition">Добавить в корзину</button>
+                    </div>
+                </form>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    var userId = int.Parse(Context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                    var isFavorite = await FavoriteService.IsFavorite(userId, toyId: Model.Toy.Id);
+                    <form class="add-to-favorite-form absolute top-4 right-4" method="post" action="/Toys/AddToFavorite" data-controller="toys" data-is-favorite="@isFavorite.ToString().ToLower()">
+                        <input type="hidden" name="id" value="@Model.Toy.Id" />
+                        <button type="submit" class="favorite-btn bg-white p-1.5 rounded-full shadow-sm hover:bg-gray-100 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 @(isFavorite ? "text-red-600" : "text-gray-400")" fill="@(isFavorite ? "currentColor" : "none")" viewBox="0 0 24 24" stroke="@(isFavorite ? "none" : "currentColor")" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364l-7.682 7.682-7.682-7.682a4.5 4.5 0 010-6.364z" />
+                            </svg>
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Отзывы -->
+    <section class="mb-12 p-6 sm:p-8 rounded-2xl">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Отзывы</h2>
+        <div id="reviews-container" class="space-y-4">
+            @if (Model.Reviews.Any())
+            {
+                var userId = User.Identity.IsAuthenticated ? int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value) : 0;
+                var isAdmin = User.IsInRole("Admin");
+                foreach (var review in Model.Reviews)
+                {
+                    var canDelete = User.Identity.IsAuthenticated && (review.UserId == userId || isAdmin);
+                    <div class="review-card bg-gray-50 p-4 rounded-lg" data-review-id="@review.Id">
+                        <div class="flex items-center mb-2">
+                            <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold mr-3">
+                                @(review.User.Username[0].ToString().ToUpper())
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">@review.User.Username</p>
+                                <p class="text-sm text-gray-500">@review.CreatedAt.ToString("dd.MM.yyyy")</p>
+                            </div>
+                            @if (canDelete)
+                            {
+                                <form class="delete-review-form ml-auto" method="post" action="/Toys/DeleteReview">
+                                    <input type="hidden" name="reviewId" value="@review.Id" />
+                                    <button type="submit" class="text-red-600 hover:text-red-800 transition">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            }
+                        </div>
+                        <div class="flex items-center mb-2">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <svg class="h-5 w-5 @(i <= review.Rating ? "text-yellow-400" : "text-gray-300")" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.691h4.162c.969 0 1.371 1.24.588 1.81l-3.357 2.44a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.54 1.118l-3.357-2.44a1 1 0 00-1.175 0l-3.357 2.44c-.784.57-1.838-.197-1.54-1.118l1.286-3.957a1 1 0 00-.363-1.118l-3.357-2.44c-.784-.57-.382-1.81.588-1.81h4.162a1 1 0 00.95-.691l1.286-3.957z" />
+                                </svg>
+                            }
+                        </div>
+                        <p class="text-gray-700">@review.Comment</p>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-gray-600">Отзывов пока нет.</p>
+            }
+        </div>
+
+        @if (User.Identity.IsAuthenticated)
+        {
+            <h3 class="text-xl font-semibold text-gray-800 mt-6 mb-4">Добавить отзыв</h3>
+            <form id="addReviewForm" class="add-review-form" data-action="/Toys/AddReview" data-item-id="@Model.Toy.Id">
+                <input type="hidden" name="id" value="@Model.Toy.Id" />
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Рейтинг:</label>
+                    <div class="flex space-x-1" id="rating-stars">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <input type="radio" name="rating" value="@i" id="rating-@i" required class="hidden peer" />
+                            <label for="rating-@i" class="cursor-pointer text-gray-300 hover:text-yellow-400 peer-checked:text-yellow-400 rating-star" data-value="@i">
+                                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.691h4.162c.969 0 1.371 1.24.588 1.81l-3.357 2.44a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.54 1.118l-3.357-2.44a1 1 0 00-1.175 0l-3.357 2.44c-.784.57-1.838-.197-1.54-1.118l1.286-3.957a1 1 0 00-.363-1.118l-3.357-2.44c-.784-.57-.382-1.81.588-1.81h4.162a1 1 0 00.95-.691l1.286-3.957z" />
+                                </svg>
+                            </label>
+                        }
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Комментарий:</label>
+                    <textarea name="comment" required class="border border-gray-300 rounded-lg p-2 w-full h-24 focus:outline-none focus:ring-2 focus:ring-green-500 transition"></textarea>
+                </div>
+                <button type="submit" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition">Отправить</button>
+            </form>
+        }
+    </section>
+
+    <!-- Рекомендуемые игрушки -->
+    <section class="bg-white/95 p-6 sm:p-8 rounded-2xl">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Рекомендуемые игрушки</h2>
+        @if (!Model.Recommendations.Any())
+        {
+            <p class="text-gray-600">Рекомендаций пока нет.</p>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var toy in Model.Recommendations)
+                {
+                    var userId = User.Identity.IsAuthenticated ? int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value) : 0;
+                    var isFavorite = User.Identity.IsAuthenticated && await FavoriteService.IsFavorite(userId, toyId: toy.Id);
+                    <div class="relative bg-gradient-to-b from-white to-gray-50 p-6 rounded-xl hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
+                        <a href="/Toys/Details/@toy.Id" class="block relative group">
+                            <img src="@toy.ImagePath" alt="@toy.Name" class="w-full h-48 object-cover rounded-lg mb-4 transition-all duration-300 group-hover:brightness-75" />
+                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg"></div>
+                        </a>
+                        <h3 class="text-lg font-semibold text-gray-800 truncate mb-4">@toy.Name</h3>
+                        <p class="text-gray-600 mb-4 line-clamp-2">@toy.Description</p>
+                        <p class="text-green-600 font-bold text-xl mb-4">₸@toy.Price.ToString("F2")</p>
+                        <form class="add-to-cart-form" method="post" action="/Toys/AddToCart" data-controller="toys">
+                            <input type="hidden" name="id" value="@toy.Id" />
+                            <div class="flex items-center space-x-2 mb-3">
+                                <input type="number" name="Quantity" value="1" min="1" max="@toy.Stock" class="border border-gray-300 rounded-lg p-2 w-16 text-center focus:outline-none focus:ring-2 focus:ring-green-500 transition" />
+                                <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition">Добавить в корзину</button>
+                            </div>
+                        </form>
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <form class="add-to-favorite-form absolute top-8 right-8" method="post" action="/Toys/AddToFavorite" data-controller="toys" data-is-favorite="@isFavorite.ToString().ToLower()">
+                                <input type="hidden" name="id" value="@toy.Id" />
+                                <button type="submit" class="favorite-btn bg-white p-1.5 rounded-full shadow-sm hover:bg-gray-100 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 @(isFavorite ? "text-red-600" : "text-gray-400")" fill="@(isFavorite ? "currentColor" : "none")" viewBox="0 0 24 24" stroke="@(isFavorite ? "none" : "currentColor")" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364l-7.682 7.682-7.682-7.682a4.5 4.5 0 010-6.364z" />
+                                    </svg>
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addReviewForm = document.querySelector('#addReviewForm');
+        const reviewsContainer = document.querySelector('#reviews-container');
+        const ratingStars = document.querySelectorAll('.rating-star');
+
+        // Динамическое обновление звёзд при выборе рейтинга
+        ratingStars.forEach(star => {
+            star.addEventListener('click', () => {
+                const value = parseInt(star.dataset.value);
+                ratingStars.forEach(s => {
+                    const starValue = parseInt(s.dataset.value);
+                    s.classList.toggle('text-yellow-400', starValue <= value);
+                    s.classList.toggle('text-gray-300', starValue > value);
+                });
+            });
+        });
+
+        if (addReviewForm) {
+            addReviewForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const form = e.target;
+                const formData = new FormData(form);
+                const url = form.dataset.action;
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const reviewCard = document.createElement('div');
+                        reviewCard.classList.add('review-card', 'bg-gray-50', 'p-4', 'rounded-lg', 'shadow-sm');
+                        reviewCard.dataset.reviewId = data.review.id;
+                        reviewCard.innerHTML = `
+                            <div class="flex items-center mb-2">
+                                <div class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold mr-3">
+                                    ${data.review.username[0].toUpperCase()}
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-800">${data.review.username}</p>
+                                    <p class="text-sm text-gray-500">${data.review.createdAt}</p>
+                                </div>
+                                <form class="delete-review-form ml-auto" method="post" action="/Toys/DeleteReview">
+                                    <input type="hidden" name="reviewId" value="${data.review.id}" />
+                                    <button type="submit" class="text-red-600 hover:text-red-800 transition">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="flex items-center mb-2">
+                                ${Array.from({ length: 5 }, (_, i) => `
+                                    <svg class="h-5 w-5 ${i < data.review.rating ? 'text-yellow-400' : 'text-gray-300'}" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.957a1 1 0 00.95.691h4.162c.969 0 1.371 1.24.588 1.81l-3.357 2.44a1 1 0 00-.363 1.118l1.286 3.957c.3.921-.755 1.688-1.54 1.118l-3.357-2.44a1 1 0 00-1.175 0l-3.357 2.44c-.784.57-1.838-.197-1.54-1.118l1.286-3.957a1 1 0 00-.363-1.118l-3.357-2.44c-.784-.57-.382-1.81.588-1.81h4.162a1 1 0 00.95-.691l1.286-3.957z"/>
+                                    </svg>
+                                `).join('')}
+                            </div>
+                            <p class="text-gray-700">${data.review.comment}</p>
+                        `;
+                        reviewsContainer.prepend(reviewCard);
+                        form.reset();
+                        // Сброс звёзд до серого цвета после отправки
+                        ratingStars.forEach(s => {
+                            s.classList.add('text-gray-300');
+                            s.classList.remove('text-yellow-400');
+                        });
+                        bindDeleteReviewForms();
+                        alert(data.message);
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (e) {
+                    console.error('Ошибка при добавлении отзыва:', e);
+                    alert('Произошла ошибка при добавлении отзыва.');
+                }
+            });
+        }
+
+        function bindDeleteReviewForms() {
+            const deleteForms = document.querySelectorAll('.delete-review-form');
+            deleteForms.forEach(form => {
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+                    const url = form.action;
+
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            const reviewCard = form.closest('.review-card');
+                            reviewCard.remove();
+                            alert(data.message);
+                        } else {
+                            alert(data.message);
+                        }
+                    } catch (e) {
+                        console.error('Ошибка при удалении отзыва:', e);
+                        alert('Произошла ошибка при удалении отзыва.');
+                    }
+                });
+            });
+        }
+        bindDeleteReviewForms();
+    });
+</script>

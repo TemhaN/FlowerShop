@@ -1,0 +1,45 @@
+﻿@model List<FlowerShop.Models.OrderDto>
+@using System.Globalization
+
+@{
+    // Устанавливаем культуру с точкой как десятичным разделителем
+    CultureInfo customCulture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+    customCulture.NumberFormat.NumberDecimalSeparator = ".";
+}
+
+<div class="container mx-auto px-4 py-12 max-w-7xl">
+    <!-- Все заказы -->
+    <section class="mb-12 bg-white/95 p-6 sm:p-8">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Мои заказы</h2>
+        @if (Model == null || !Model.Any())
+        {
+            <p class="text-gray-500 text-base sm:text-lg">У вас пока нет заказов.</p>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                @foreach (var order in Model.OrderByDescending(o => o.OrderDate))
+                {
+                    <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-shadow duration-300">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Заказ #@order.Id</h3>
+                            <span class="text-sm text-gray-500">@order.OrderDate.ToString("dd.MM.yyyy")</span>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-green-600 font-semibold text-base sm:text-lg">₸@order.TotalAmount.ToString("F2", customCulture)</p>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Товары:</h4>
+                            <ul class="list-disc pl-4 text-gray-600 text-sm space-y-1">
+                                @foreach (var item in order.OrderItems)
+                                {
+                                    <li>@(item.ItemName ?? "Неизвестный товар") (x@(item.Quantity))</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+</div>

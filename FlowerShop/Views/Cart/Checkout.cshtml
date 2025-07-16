@@ -1,0 +1,259 @@
+﻿@model FlowerShop.Models.Cart
+
+<div class="container mx-auto px-4 py-16 sm:py-12 max-w-7xl">
+    <div class="bg-white/95 p-8 sm:p-10 rounded-2xl bg-gradient-to-b from-white to-gray-50 max-w-[340px] min-h-[450px] sm:max-w-sm mx-auto">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6 sm:mb-8 text-center">Оформление заказа</h1>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2 text-center">Состав заказа</h2>
+        @if (Model.CartItems.Any())
+        {
+            <ul class="mb-6 space-y-2">
+                @foreach (var item in Model.CartItems)
+                {
+                    <li class="flex justify-between items-center text-base text-gray-700">
+                        <span class="text-sm text-gray-600">@(item.Bouquet?.Name ?? item.Flower?.Name ?? item.Toy?.Name)</span>
+                        <span class="text-sm">Кол-во: @item.Quantity</span>
+                        <span class="text-green-600 font-semibold">₸@((item.Bouquet?.Price ?? item.Flower?.Price ?? item.Toy?.Price) * item.Quantity)</span>
+                    </li>
+                }
+            </ul>
+            <p class="text-base text-green-600 font-bold text-center mb-6">Итого: ₸@Model.CartItems.Sum(ci => ci.Quantity * (ci.Bouquet?.Price ?? ci.Flower?.Price ?? ci.Toy?.Price))</p>
+            <div class="flex justify-end">
+                <button id="openModalButton" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 hover:scale-102 transition duration-200 text-base">
+                    Оформить заказ
+                </button>
+            </div>
+        }
+        else
+        {
+            <p class="text-base text-gray-600 text-center">Ваша корзина пуста.</p>
+        }
+    </div>
+</div>
+
+<!-- Модальное окно -->
+<div id="modal" class="custom-blur hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 py-8 my-8">
+    <div class="bg-white/95 p-8 sm:p-6 rounded-2xl bg-gradient-to-b from-white to-gray-50 w-[90%] max-w-[500px] sm:max-w-[400px] mx-auto relative py-8 my-xxl-5">
+        <button id="modalCloseButton" class="absolute top-3 right-3 text-gray-800 hover:text-gray-600 text-2xl">×</button>
+        <h2 class="text-xl font-semibold text-gray-800 mb-2 text-center">Адрес доставки</h2>
+        <form id="payment-form" class="grid gap-6">
+            <div>
+                <label for="street" class="block text-base font-medium text-gray-700 mb-1">Адрес</label>
+                <input type="text" id="street" name="street" required
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200"
+                       placeholder="ул. Примерная, 456" />
+                <div id="error-street" class="text-red-600 text-sm mt-1 text-center hidden"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="city" class="block text-base font-medium text-gray-700 mb-1">Город</label>
+                    <input type="text" id="city" name="city" required
+                           class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200"
+                           placeholder="Москва" />
+                    <div id="error-city" class="text-red-600 text-sm mt-1 text-center hidden"></div>
+                </div>
+                <div>
+                    <label for="zip" class="block text-base font-medium text-gray-700 mb-1">Индекс</label>
+                    <input type="text" id="zip" name="zip" required pattern="\d{5}" maxlength="5"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200"
+                           placeholder="12345" />
+                    <div id="error-zip" class="text-red-600 text-sm mt-1 text-center hidden"></div>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-semibold text-gray-800 mb-2 text-center mt-4">Данные оплаты</h2>
+            <div>
+                <label for="cardNumber" class="block text-base font-medium text-gray-700 mb-1">Номер карты</label>
+                <input type="text" id="cardNumber" name="cardNumber" required pattern="\d{16}" maxlength="16"
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200"
+                       placeholder="1234567890123456" />
+                <div id="error-cardNumber" class="text-red-600 text-sm mt-1 text-center hidden"></div>
+            </div>
+            <div>
+                <label for="cardHolder" class="block text-base font-medium text-gray-700 mb-1">Имя держателя</label>
+                <input type="text" id="cardHolder" name="cardHolder" required
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200"
+                       placeholder="Иван Иванов" />
+                <div id="error-cardHolder" class="text-red-600 text-sm mt-1 text-center hidden"></div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="expiryDate" class="block text-base font-medium text-gray-700 mb-1">Срок действия (ММ/ГГ)</label>
+                    <input type="text" id="expiryDate" name="expiryDate" required pattern="\d{2}/\d{2}" maxlength="5"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200"
+                           placeholder="ММ/ГГ" />
+                    <div id="error-expiryDate" class="text-red-600 text-sm mt-1 text-center hidden"></div>
+                </div>
+                <div>
+                    <label for="cvv" class="block text-base font-medium text-gray-700 mb-1">CVV</label>
+                    <input type="text" id="cvv" name="cvv" required pattern="\d{3}" maxlength="3"
+                           class="w-full border border-gray-300 rounded-lg px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition duration-200"
+                           placeholder="123" />
+                    <div id="error-cvv" class="text-red-600 text-sm mt-1 text-center hidden"></div>
+                </div>
+            </div>
+
+            <input type="hidden" name="cartId" value="@Model.Id" />
+            <div class="flex justify-end">
+                <button type="submit" id="payButton"
+                        class="bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 hover:scale-102 transition duration-200 text-base flex items-center justify-center">
+                    <span id="payText">Оплатить</span>
+                    <div id="spinner" class="spinner hidden ml-2 w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </button>
+            </div>
+            <div id="notification" class="text-sm text-center hidden"></div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('modal');
+        const openModalButton = document.getElementById('openModalButton');
+        const closeModalButton = document.getElementById('modalCloseButton');
+        const form = document.getElementById('payment-form');
+        const expiryDateInput = document.getElementById('expiryDate');
+        const payButton = document.getElementById('payButton');
+        const spinner = document.getElementById('spinner');
+        const payText = document.getElementById('payText');
+        const notification = document.getElementById('notification');
+
+        // Проверка элементов
+        if (!modal || !openModalButton || !closeModalButton || !form || !expiryDateInput || !payButton || !spinner || !payText || !notification) {
+            console.error('Один или несколько элементов не найдены');
+            return;
+        }
+
+        // Открытие модалки
+        openModalButton.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+        });
+
+        // Закрытие модалки
+        closeModalButton.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            clearErrors();
+        });
+
+        // Закрытие при клике вне модалки
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                clearErrors();
+            }
+        });
+
+        // Форматирование ММ/ГГ
+        expiryDateInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 2) {
+                value = value.slice(0, 2) + '/' + value.slice(2, 4);
+            }
+            e.target.value = value;
+        });
+
+        // Валидация и фейковая оплата
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearErrors();
+
+            const formData = new FormData(form);
+            const cardNumber = formData.get('cardNumber');
+            const expiryDate = formData.get('expiryDate');
+            const cvv = formData.get('cvv');
+            const street = formData.get('street');
+            const city = formData.get('city');
+            const zip = formData.get('zip');
+            const cartId = formData.get('cartId');
+
+            let hasError = false;
+
+            // Валидация
+            if (!/^\d{16}$/.test(cardNumber)) {
+                showError('cardNumber', 'Неверный номер карты (требуется 16 цифр)');
+                hasError = true;
+            }
+            if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+                showError('expiryDate', 'Неверный срок действия (ММ/ГГ)');
+                hasError = true;
+            }
+            if (!/^\d{3}$/.test(cvv)) {
+                showError('cvv', 'Неверный CVV (требуется 3 цифры)');
+                hasError = true;
+            }
+            if (!street) {
+                showError('street', 'Введите адрес');
+                hasError = true;
+            }
+            if (!city) {
+                showError('city', 'Введите город');
+                hasError = true;
+            }
+            if (!/^\d{5}$/.test(zip)) {
+                showError('zip', 'Неверный индекс (требуется 5 цифр)');
+                hasError = true;
+            }
+
+            if (hasError) return;
+
+            // Фейковая загрузка
+            payButton.disabled = true;
+            payText.classList.add('hidden');
+            spinner.classList.remove('hidden');
+
+            try {
+                // Отправка на сервер для создания заказа
+                const response = await fetch('/Orders/CreateOrder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ cartId: parseInt(cartId) })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Ошибка при создании заказа');
+                }
+
+                // Успех
+                showNotification('Оплата прошла успешно! Заказ оформлен.', 'text-green-600');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    window.location.href = '/';
+                }, 2000);
+            } catch (error) {
+                showNotification('Не удалось создать заказ: ' + error.message, 'text-red-600');
+                payButton.disabled = false;
+                payText.classList.remove('hidden');
+                spinner.classList.add('hidden');
+            }
+        });
+
+        function showError(fieldId, message) {
+            const errorDiv = document.getElementById(`error-${fieldId}`);
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function clearErrors() {
+            const errorDivs = document.querySelectorAll('[id^="error-"]');
+            errorDivs.forEach(div => {
+                div.textContent = '';
+                div.classList.add('hidden');
+            });
+            notification.textContent = '';
+            notification.classList.add('hidden');
+        }
+
+        function showNotification(message, classes) {
+            notification.textContent = message;
+            notification.className = `text-sm text-center ${classes}`;
+            notification.classList.remove('hidden');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+    });
+</script>

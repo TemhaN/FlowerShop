@@ -1,0 +1,172 @@
+﻿@model FlowerShop.Models.ProfileViewModel
+@using System.Security.Claims
+@inject FlowerShop.Services.FavoriteService FavoriteService
+@inject FlowerShop.Services.CartService CartService
+
+<div class="container mx-auto px-4 py-12 max-w-7xl">
+    <!-- Двухколоночная раскладка для профиля и корзины -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <!-- Редактирование профиля (слева) -->
+        <section class="bg-white/95 p-8 rounded-2xl transition-all duration-500 hover:shadow-xl">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Редактировать профиль</h2>
+            <form asp-action="UpdateProfile" method="post" class="space-y-6">
+                <input type="hidden" asp-for="UserProfile.Id" />
+                <div>
+                    <label asp-for="UserProfile.Username" class="block text-gray-700 font-medium mb-2">Имя пользователя</label>
+                    <input asp-for="UserProfile.Username" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 transition" />
+                    <span asp-validation-for="UserProfile.Username" class="text-red-500 text-sm"></span>
+                </div>
+                <div>
+                    <label asp-for="UserProfile.Password" class="block text-gray-700 font-medium mb-2">Новый пароль (оставьте пустым, если не меняете)</label>
+                    <input asp-for="UserProfile.Password" type="password" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 transition" />
+                    <span asp-validation-for="UserProfile.Password" class="text-red-500 text-sm"></span>
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition">Сохранить</button>
+            </form>
+        </section>
+
+        <!-- Корзина (справа) -->
+        <section class="bg-white/95 p-8 rounded-2xl transition-all duration-500 hover:shadow-xl">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6">Корзина</h2>
+            <div class="space-y-4">
+                @if (Model?.Cart == null || Model.Cart.CartItems == null || !Model.Cart.CartItems.Any())
+                {
+                    <p class="text-gray-500 text-lg">Корзина пуста.</p>
+                }
+                else
+                {
+                    <ul class="space-y-4">
+                        @foreach (var item in Model.Cart.CartItems)
+                        {
+                            var itemName = item?.Bouquet?.Name ?? item?.Flower?.Name ?? item?.Toy?.Name ?? "Неизвестный товар";
+                            var itemPrice = item?.Bouquet?.Price ?? item?.Flower?.Price ?? item?.Toy?.Price ?? 0m;
+                            <li class="flex justify-between items-center bg-gray-100 p-4 rounded-lg">
+                                <span class="text-gray-700 font-medium">@itemName</span>
+                                <span class="text-gray-500">x @item.Quantity</span>
+                                <span class="text-green-600 font-semibold">₸@((itemPrice * item.Quantity).ToString("F2"))</span>
+                                <form class="remove-from-cart-form" method="post" action="/api/Cart/RemoveCartItem" data-controller="cart">
+                                    <input type="hidden" name="cartItemId" value="@item.Id" />
+                                    <button type="submit" class="text-red-600 hover:text-red-800 font-medium transition">Удалить</button>
+                                </form>
+                            </li>
+                        }
+                    </ul>
+                    <p class="text-green-600 font-bold text-xl mt-6">Итого: ₸@(Model.Cart.CartItems.Sum(ci => ci.Quantity * (ci.Bouquet?.Price ?? ci.Flower?.Price ?? ci.Toy?.Price ?? 0)).ToString("F2"))</p>
+                    <a href="/Cart/Checkout" class="block w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition text-center">Оформить заказ</a>
+                }
+            </div>
+        </section>
+    </div>
+
+    <!-- Последние заказы -->
+    <section class="mb-12 bg-white/95 p-6 sm:p-8">
+        <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">Мои последние заказы</h2>
+        @if (Model.Orders == null || !Model.Orders.Any())
+        {
+            <p class="text-gray-500 text-base sm:text-lg">У вас нет заказов.</p>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                @foreach (var order in Model.Orders.OrderByDescending(o => o.OrderDate).Take(5))
+                {
+                    <div class="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 hover:shadow-xl transition-shadow duration-300">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-800">Заказ #@order.Id</h3>
+                            <span class="text-sm text-gray-500">@order.OrderDate.ToString("dd.MM.yyyy")</span>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-green-600 font-semibold text-base sm:text-lg">₸@order.TotalAmount.ToString("F2")</p>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Товары:</h4>
+                            <ul class="list-disc pl-4 text-gray-600 text-sm space-y-1">
+                                @foreach (var item in order.OrderItems)
+                                {
+                                    <li>@(item.ItemName ?? "Неизвестный товар") (x@(item.Quantity))</li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <!-- Избранные товары -->
+    <section class="mb-12 bg-white/95 p-8 rounded-2xl">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Избранное</h2>
+        @if (Model.Favorites == null || !Model.Favorites.Any())
+        {
+            <p class="text-gray-500 text-lg">Ваше избранное пусто.</p>
+        }
+        else
+        {
+            <div id="products-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var favorite in Model.Favorites)
+                {
+                    var itemName = favorite.BouquetName ?? favorite.FlowerName ?? favorite.ToyName ?? "Неизвестный товар";
+                    var itemImage = favorite.BouquetId.HasValue ? favorite.BouquetImagePath :
+                    favorite.FlowerId.HasValue ? favorite.FlowerImagePath :
+                    favorite.ToyImagePath ?? "/Images/placeholder.png";
+                    var itemPrice = favorite.BouquetPrice ?? favorite.FlowerPrice ?? favorite.ToyPrice ?? 0m;
+                    var itemId = favorite.BouquetId ?? favorite.FlowerId ?? favorite.ToyId ?? 0;
+                    var itemType = favorite.BouquetId.HasValue ? "Букет" : favorite.FlowerId.HasValue ? "Цветок" : "Игрушка";
+                    var detailsUrl = $"/{(favorite.BouquetId.HasValue ? "Bouquets" : favorite.FlowerId.HasValue ? "Flowers" : "Toys")}/Details/{itemId}";
+                    var isFavorite = true;
+
+                    <div class="relative bg-gradient-to-b from-white to-gray-50 p-6 rounded-xl hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
+                        <a href="@detailsUrl" class="block relative group">
+                            <img src="@itemImage" alt="@itemName" class="w-full h-48 object-cover rounded-lg mb-4 transition-all duration-300 group-hover:brightness-75" />
+                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 rounded-lg"></div>
+                        </a>
+                        <h3 class="text-lg font-semibold text-gray-800 truncate mb-4">
+                            @itemName <span class="text-sm text-gray-500">• @itemType</span>
+                        </h3>
+                        <p class="text-green-600 font-bold text-xl mb-4">₸@itemPrice.ToString("F2")</p>
+                        <form class="add-to-cart-form" method="post" action="/@(favorite.BouquetId.HasValue ? "Bouquets" : favorite.FlowerId.HasValue ? "Flowers" : "Toys")/AddToCart" data-controller="@((favorite.BouquetId.HasValue ? "bouquets" : favorite.FlowerId.HasValue ? "flowers" : "toys"))">
+                            <input type="hidden" name="id" value="@itemId" />
+                            <div class="flex items-center space-x-2 mb-3">
+                                <input type="number" name="Quantity" value="1" min="1" class="border border-gray-300 rounded-lg p-2 w-16 text-center focus:outline-none focus:ring-2 focus:ring-green-500 transition" />
+                                <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition">В корзину</button>
+                            </div>
+                        </form>
+                        <form class="add-to-favorite-form absolute top-8 right-8" method="post" action="/@(favorite.BouquetId.HasValue ? "Bouquets" : favorite.FlowerId.HasValue ? "Flowers" : "Toys")/AddToFavorite" data-controller="@((favorite.BouquetId.HasValue ? "bouquets" : favorite.FlowerId.HasValue ? "flowers" : "toys"))" data-is-favorite="@isFavorite.ToString().ToLower()">
+                            <input type="hidden" name="id" value="@itemId" />
+                            <button type="submit" class="favorite-btn bg-white p-1.5 rounded-full shadow-sm hover:bg-gray-100 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 @(isFavorite ? "text-red-600" : "text-gray-400")" fill="@(isFavorite ? "currentColor" : "none")" viewBox="0 0 24 24" stroke="@(isFavorite ? "none" : "currentColor")" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 016.364 6.364l-7.682 7.682-7.682-7.682a4.5 4.5 0 010-6.364z" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        document.forms[0]?.addEventListener('submit', function (e) {
+            const username = document.querySelector('input[name="UserProfile.Username"]');
+            const password = document.querySelector('input[name="UserProfile.Password"]');
+            let valid = true;
+            let message = '';
+
+            if (!username.value || username.value.length < 3) {
+                message += 'Имя пользователя должно содержать минимум 3 символа.\n';
+                valid = false;
+            }
+            if (password.value && password.value.length < 6) {
+                message += 'Пароль должен содержать минимум 6 символов.\n';
+                valid = false;
+            }
+
+            if (!valid) {
+                e.preventDefault();
+                alert(message);
+            }
+        });
+    </script>
+}

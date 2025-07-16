@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flower Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvW勤2
+WZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="bg-gray-100 overflow-x-hidden">
+    <header class="fixed top-4 w-11/12 max-w-6xl bg-white bg-opacity-60 custom-blur border border-gray-200 rounded-full p-4 sm:p-6 z-50 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/" class="text-xl sm:text-3xl font-bold text-gray-800 flex items-center">
+                <i class="fas fa-flower-tulip mr-2"></i> Flower Shop
+            </a>
+            <nav class="flex items-center space-x-4 sm:space-x-6">
+                <ul class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-6 text-gray-800">
+                    <!-- Внутри <header> в секции nav для авторизованных пользователей -->
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <li class="relative dropdown">
+                            <span class="dropdown-toggle cursor-pointer flex items-center font-semibold">
+                                <i class="fas fa-user mr-1"></i> Аккаунт
+                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                            </span>
+                            <ul class="dropdown-menu absolute bg-white custom-blur border border-gray-200 rounded-xl p-3 mt-2 shadow-lg w-48 z-50">
+                                <li class="text-gray-800 px-2 py-1">Привет, @User.Identity.Name</li>
+                                <li><a href="/User/Profile" class="hover:text-gray-600 px-2 py-2 block flex items-center"><i class="fas fa-user-circle mr-1"></i> Профиль</a></li>
+                                <li><a href="/Orders/MyOrders" class="hover:text-gray-600 px-2 py-2 block flex items-center"><i class="fas fa-box mr-1"></i> Мои заказы</a></li>
+                                <li><a href="/Favorites" class="hover:text-gray-600 px-2 py-2 block flex items-center"><i class="fas fa-heart mr-1"></i> Избранное</a></li>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <li><a href="/Admin/Dashboard" class="hover:text-gray-600 px-2 py-2 block flex items-center"><i class="fas fa-cog mr-1"></i> Админ-панель</a></li>
+                                }
+                                <li><a href="/Auth/Logout" id="logout-button" class="hover:text-gray-600 px-2 py-1 block flex items-center"><i class="fas fa-sign-out-alt mr-1"></i> Выйти</a></li>
+                            </ul>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                            <a href="/Auth/Login" class="hover:text-gray-600 flex items-center font-semibold"><i class="fas fa-sign-in-alt mr-1"></i> Войти</a>
+                            <a href="/Cart/Checkout" class="hover:text-gray-600 flex items-center font-semibold"><i class="fas fa-check-circle mr-1"></i> Оформить заказ</a>
+                        </li>
+                    }
+                </ul>
+                <button id="cart-toggle" class="bg-white bg-opacity-80 custom-blur border border-gray-200 text-gray-800 px-3 py-1 sm:px-4 sm:py-2 rounded-full hover:bg-opacity-90 flex items-center transition-all duration-200">
+                    <i class="fas fa-shopping-cart mr-2"></i> Корзина
+                </button>
+            </nav>
+        </div>
+    </header>
+    <div id="cart-sidebar" class="fixed bg-white bg-opacity-80 custom-blur transition-all duration-300 z-[1000] overflow-y-auto closed">
+        <button id="cart-close" class="text-red-500 mb-4 hover:text-red-700 flex items-center m-2 text-xl"><i class="fas fa-times mr-2"></i> Закрыть</button>
+        <div class="cart-summary">
+            <partial name="_CartPartial" />
+        </div>
+    </div>
+    <div data-notification="@TempData["Notification"]" id="notification-container" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-[5000] w-full max-w-[400px]"></div>
+    <div id="main-container" class="min-h-screen pt-20 sm:pt-24 transition-all duration-300">
+        <main class="container mx-auto p-4">
+            @RenderBody()
+        </main>
+    </div>
+
+        <nav class="bottom-bar">
+            <a href="/"><i class="fas fa-home"></i> Главная</a>
+            @if (User.Identity.IsAuthenticated)
+            {
+                <a href="/User/Profile"><i class="fas fa-user"></i> Аккаунт</a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a href="/Admin/Dashboard"><i class="fas fa-cog"></i> Админ-панель</a>
+                }
+            }
+            else
+            {
+                <a href="/Auth/Login"><i class="fas fa-sign-in-alt"></i> Войти</a>
+            }
+            <button id="cart-toggle-mobile" class="cart-toggle"><i class="fas fa-shopping-cart"></i> Корзина</button>
+        </nav>
+    <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true" onerror="console.error('Ошибка загрузки site.js! Проверь путь ~/js/site.js в wwwroot/js')"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

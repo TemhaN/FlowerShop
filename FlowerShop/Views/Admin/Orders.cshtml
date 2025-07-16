@@ -1,0 +1,138 @@
+﻿@model List<FlowerShop.Models.Order>
+
+@{
+    ViewData["Title"] = "Управление заказами";
+}
+
+<div class="container mx-auto px-4 py-12 max-w-7xl">
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">Управление заказами</h1>
+
+    <div class="bg-white rounded-xl shadow-lg overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="p-4 text-left">ID</th>
+                    <th class="p-4 text-left">Пользователь</th>
+                    <th class="p-4 text-left">Дата заказа</th>
+                    <th class="p-4 text-left">Сумма</th>
+                    <th class="p-4 text-left">Товары</th>
+                    <th class="p-4 text-left">Действия</th>
+                </tr>
+            </thead>
+            <tbody id="orders-table">
+                @foreach (var order in Model)
+                {
+                    <tr class="border-t" data-id="@order.Id">
+                        <td class="p-4">@order.Id</td>
+                        <td class="p-4">@order.User.Username</td>
+                        <td class="p-4">@order.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="p-4">₸@order.TotalAmount.ToString("F2")</td>
+                        <td class="p-4">@order.OrderItems.Count</td>
+                        <td class="p-4">
+                            <a href="/Admin/OrderDetails/@order.Id" class="text-blue-500 hover:underline mr-4">Подробности</a>
+                            <button onclick="openDeleteModal(@order.Id, 'order')" class="text-red-500 hover:underline">Удалить</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Модальное окно для подтверждения удаления -->
+    <div id="delete-order-modal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Подтверждение удаления</h2>
+            <p class="mb-4">Вы уверены, что хотите удалить этот заказ?</p>
+            <form id="delete-order-form">
+                <input type="hidden" name="id" id="delete-order-id" />
+                <div class="flex space-x-4">
+                    <button type="submit" id="delete-order-submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Удалить</button>
+                    <button type="button" onclick="closeModal('delete-order-modal')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.remove('hidden');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.add('hidden');
+        if (modalId === 'delete-order-modal') {
+            document.getElementById('delete-order-id').value = ''; // Очистка поля
+        }
+    }
+
+    function openDeleteModal(id, type) {
+        console.log(`Opening delete modal for ${type} with ID: ${id}`);
+        if (!id || isNaN(id) || id <= 0) {
+            console.error(`Invalid ID provided: ${id}`);
+            alert('Ошибка: Неверный ID');
+            return;
+        }
+        const input = document.getElementById(`delete-${type}-id`);
+        if (!input) {
+            console.error(`Input element delete-${type}-id not found`);
+            alert('Ошибка: Не найден элемент формы');
+            return;
+        }
+        input.value = id;
+        console.log(`Set input value to: ${input.value}`);
+        openModal(`delete-${type}-modal`);
+    }
+
+    document.getElementById('delete-order-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitButton = document.getElementById('delete-order-submit');
+        if (submitButton.disabled) {
+            return;
+        }
+        submitButton.disabled = true;
+        submitButton.textContent = 'Удаление...';
+
+        const idInput = document.getElementById('delete-order-id');
+        const id = idInput.value.trim();
+        console.log(`Raw ID from input: "${id}"`);
+        const parsedId = parseInt(id, 10);
+        console.log(`Parsed ID: ${parsedId}`);
+
+        if (!id || isNaN(parsedId) || parsedId <= 0) {
+            console.error(`Invalid ID: "${id}" (parsed: ${parsedId})`);
+            alert('Ошибка: Неверный ID заказа');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Удалить';
+            return;
+        }
+
+        try {
+            const response = await fetch('/Admin/DeleteOrder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: parsedId })
+            });
+            console.log(`Response status: ${response.status}`);
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            }
+            const result = await response.json();
+            console.log('Server response:', result);
+            if (result.success) {
+                document.querySelector(`#orders-table tr[data-id="${parsedId}"]`).remove();
+                closeModal('delete-order-modal');
+                alert(result.message);
+            } else {
+                alert('Ошибка: ' + result.message);
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Ошибка при удалении заказа: ' + error.message);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Удалить';
+        }
+    });
+</script>

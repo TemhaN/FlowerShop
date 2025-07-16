@@ -1,0 +1,49 @@
+﻿@inject FlowerShop.Services.CartService CartService
+@{
+    int? userId = Context.User.Identity.IsAuthenticated
+        ? int.Parse(Context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? throw new InvalidOperationException("Пользователь не найден"))
+        : null;
+    var cart = await CartService.GetCart(userId);
+}
+
+<div class="cart-container container mx-auto px-4 py-8 max-w-7xl">
+    <section class="bg-white/95 p-6 rounded-2xl w-full max-w-[400px] mx-auto">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6">Ваша корзина</h3>
+        @if (cart.CartItems.Any())
+        {
+            <ul class="space-y-4 mb-8">
+                @foreach (var item in cart.CartItems)
+                {
+                    var price = item.Bouquet?.Price ?? item.Flower?.Price ?? item.Toy?.Price ?? 0;
+                    var itemId = userId.HasValue ? item.Id : (item.BouquetId ?? item.FlowerId ?? item.ToyId ?? 0);
+                    <li class="bg-gray-100 p-4 rounded-lg" data-item-id="@itemId" data-price="@price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)">
+                        <div class="flex flex-col space-y-3">
+                            <span class="text-gray-700 font-medium truncate text-lg">@(item.Bouquet?.Name ?? item.Flower?.Name ?? item.Toy?.Name)</span>
+                            <div class="flex flex-col items-start gap-3">
+                                <div class="flex items-center gap-3 w-full">
+                                    <button class="decrement bg-gray-300 text-gray-700 w-12 h-12 rounded-lg hover:bg-gray-400 transition text-xl font-bold" data-item-id="@itemId">-</button>
+                                    <input type="number" class="quantity w-16 text-center border border-gray-300 rounded-lg p-2 text-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition" value="@item.Quantity" min="1" data-item-id="@itemId">
+                                    <button class="increment bg-gray-300 text-gray-700 w-12 h-12 rounded-lg hover:bg-gray-400 transition text-xl font-bold" data-item-id="@itemId">+</button>
+                                </div>
+                                <div class="flex justify-between items-center w-full">
+                                    <span class="item-total text-green-600 font-semibold text-lg">₸@((price * item.Quantity).ToString("F2"))</span>
+                                    <button class="remove bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-base font-semibold" data-item-id="@itemId">Удалить</button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ul>
+            <p class="cart-total text-green-600 font-bold text-2xl mb-6">
+                Итого: ₸@(cart.CartItems.Sum(ci => ci.Quantity * (ci.Bouquet?.Price ?? ci.Flower?.Price ?? ci.Toy?.Price ?? 0)).ToString("F2"))
+            </p>
+            <div>
+                <a href="/Cart/Checkout" class="block w-full bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-lg font-semibold text-lg hover:from-green-700 hover:to-green-800 transition text-center">Оформить заказ</a>
+            </div>
+        }
+        else
+        {
+            <p class="text-gray-500 text-lg text-center">Ваша корзина пуста.</p>
+        }
+    </section>
+</div>
