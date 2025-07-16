@@ -40,9 +40,7 @@
    ```bash
    git clone https://github.com/YourUsername/FlowerShop.git
    cd FlowerShop
-```
 
-```
 2. **Установите зависимости**:
 
    ```bash
