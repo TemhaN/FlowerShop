@@ -38,7 +38,7 @@
 
 1. **Клонируйте репозиторий**:
    ```bash
-   git clone https://github.com/YourUsername/FlowerShop.git
+   git clone https://github.com/TemhaN/FlowerShop.git
    cd FlowerShop
 
 2. **Установите зависимости**:
